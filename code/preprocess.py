@@ -90,6 +90,13 @@ class PreprocessTweets():
     def get_target(self):
         # Encode target values
         encoder = LabelEncoder()
+        
+        self.train.loc[self.train['Sentiment'] == 'Extremely Positive'] = 'Positive'
+        self.test.loc[self.test['Sentiment'] == 'Extremely Positive'] = 'Positive'
+        
+        self.train.loc[self.train['Sentiment'] == 'Extremely Negative'] = 'Negative'
+        self.test.loc[self.test['Sentiment'] == 'Extremely Negative'] = 'Negative'
+        
         self.train['Sentiment'] = encoder.fit_transform(self.train['Sentiment'])
         self.test['Sentiment'] = encoder.fit_transform(self.test['Sentiment'])
     

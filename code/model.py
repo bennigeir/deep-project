@@ -15,16 +15,19 @@ class RNN(nn.Module):
     def __init__(self):
         super().__init__()
         
-        self.embedding = nn.Embedding(30522, 64)
+        self.embedding = nn.Embedding(30522, 50)
         
-        self.LSTM = nn.LSTM(input_size=64,
-                            hidden_size=32,
+        self.LSTM = nn.LSTM(input_size=50,
+                            hidden_size=25,
                             batch_first=True,
-                            bidirectional=True)
+                            )
         
         self.drop = nn.Dropout(0.2)
+        
+        self.relu = nn.ReLU()
 
-        self.fc = nn.Linear(32, 5)
+        # self.fc = nn.Linear(25, 5)
+        self.fc = nn.Linear(25, 3)
         
         self.act = nn.Softmax()
         
@@ -36,14 +39,15 @@ class RNN(nn.Module):
         # print(x.shape)
         
         x = self.drop(x)
-        x_pack = pack_padded_sequence(x, torch.Tensor(500), batch_first=True)
+        x = self.relu(x)
+        # x_pack = pack_padded_sequence(x, torch.Tensor(500), batch_first=True)
         
         lstm_out, (ht, ct) = self.LSTM(x)
         # print(x)
         x = self.fc(ht[-1])
 
         
-        return self.act(x)
+        return x#self.act(x)
 '''    
 from preprocess import PreprocessTweets
 from torch.utils.data import DataLoader
