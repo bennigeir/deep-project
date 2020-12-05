@@ -5,5 +5,7 @@ Created on Sat Dec  5 11:12:49 2020
 @author: Benedikt
 """
 
-from .util import (remove_url,
-                   remove_non_alpha)
+from .utils import (remove_url,
+                    remove_non_alpha,
+                    pad_list,
+                    trim_list)
