@@ -2,24 +2,13 @@
 """
 Created on Fri Dec  4 19:56:31 2020
 
-@author: Benedikt
-
-https://arxiv.org/pdf/1408.5882.pdf
-
-
-1.  preprocess data
-    - OOV, out of vocabulary 
-    - variable length sequences, Pytorch: Packed Padding sequence
-2.  model
-3.  train
-4.  evaluate
-
+@authors: Benedikt, Emil, Sara
 """
 
 import pandas as pd
 
 
-class Preprocess():
+class PreprocessTweets():
     
     def __init__(self):
         
@@ -32,7 +21,7 @@ class Preprocess():
                          'Location',
                          'TweetAt',
                          'OriginalTweet']
-        self.target = 'Sentiment'
+        self.target = ['Sentiment']
         
         self.X_train = None
         self.X_test = None
@@ -52,3 +41,26 @@ class Preprocess():
         
         self.y_train = train_data[self.features]
         self.y_test = test_data[self.target]
+        
+        return self.X_train, self.X_test, self.y_train, self.y_test
+    
+    
+    def clean_data(self):
+        # lower, or upper, or both?
+        # remoce special characters?
+        pass
+    
+    
+    def tokenize(self):
+        # Use nltk tokenize?
+        pass
+    
+    
+    def padding(self):
+        # Tweets have different lengths...
+        pass
+    
+    
+    def vocabulary(self):
+        # Frequency distribution?
+        pass
