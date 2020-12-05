@@ -48,6 +48,7 @@ y_train = train_data['Sentiment']
 X_test = test_data['OriginalTweet']
 y_test = test_data['Sentiment']
 
+'''
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',do_lower_case=True)
 
 
@@ -71,7 +72,7 @@ encoded_data_test = tokenizer.batch_encode_plus(
     max_length=50, 
     return_tensors='pt'
 )
-
+'''
 # %%
 
 model = RNN()
@@ -106,6 +107,7 @@ for epocs in range(10):
     optimizer.zero_grad() # Clear the gradients, before next batch.
     output = model(X)  # Forward pass
 
+    print(output, y.view(-1,1))
     
     loss = functional.nll_loss(output, y.view(-1,1)) # Computing loss.
     loss.backward()  # Back-propagation (computing gradients)

@@ -7,6 +7,7 @@ Created on Sat Dec  5 09:55:19 2020
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class RNN(nn.Module):
@@ -14,15 +15,18 @@ class RNN(nn.Module):
     def __init__(self):
         super().__init__()
         
-        self.embedding = nn.Embedding(30522, 16)
-        self.LSTM = nn.LSTM(input_size=16,
-                            hidden_size=8,
-                            num_layers=1,
-                            batch_first=True)
-        self.linear1 = nn.Linear(16, 32)
-        self.linear2 = nn.Linear(32, 16)
-        self.linear3 = nn.Linear(16, 1)
-        self.relu = nn.ReLU()
+        self.embedding = nn.Embedding(30522, 64)
+        
+        self.LSTM = nn.LSTM(input_size=64,
+                            hidden_size=32,
+                            batch_first=True,
+                            bidirectional=True)
+        
+        self.drop = nn.Dropout(0.2)
+
+        self.fc = nn.Linear(32, 5)
+        
+        self.act = nn.Softmax()
         
   
     def forward(self, x):
@@ -30,18 +34,16 @@ class RNN(nn.Module):
         # print(x.shape)
         x = self.embedding(x)
         # print(x.shape)
-        # x = self.LSTM(x)
-        # print(x)
-        x = self.linear1(x)
-        x = self.relu(x)
-        x = self.linear2(x)
-        x = self.relu(x)
-        x = self.linear3(x)
-        x = self.relu(x)
-        # print(x.shape)
         
-        return x#functional.log_softmax(x, dim=1)
+        x = self.drop(x)
+        x_pack = pack_padded_sequence(x, torch.Tensor(500), batch_first=True)
+        
+        lstm_out, (ht, ct) = self.LSTM(x)
+        # print(x)
+        x = self.fc(ht[-1])
 
+        
+        return self.act(x)
 '''    
 from preprocess import PreprocessTweets
 from torch.utils.data import DataLoader
