@@ -86,7 +86,7 @@ class PreprocessTweets():
     
     
     def strip_stop_words(self):
-        # Remove stopwords?
+        # Remove stopwords
                 
         self.train['OriginalTweet'] = self.train['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))
         self.test['OriginalTweet'] = self.test['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))

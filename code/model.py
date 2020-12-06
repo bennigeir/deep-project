@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 class LSTM(nn.Module):
     
-    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+    def __init__(self, input_size, embed_size, output_size, dropout=0.1):
         
         super().__init__()
         
@@ -25,15 +25,13 @@ class LSTM(nn.Module):
         
         self.LSTM = nn.LSTM(input_size=self.embed_size,
                             hidden_size=self.embed_size*2,
-                            # num_layers = 1,
+                            num_layers = 1,
                             batch_first=True,
-                            # dropout=self.dropout,
+                            dropout=self.dropout,
                             )
         
-        self.drop = nn.Dropout(self.dropout)
         self.relu = nn.ReLU()
         self.fc = nn.Linear(self.embed_size*2, self.output_size)
-        self.act = nn.Softmax()
         
   
     def forward(self, text):
@@ -47,7 +45,7 @@ class LSTM(nn.Module):
 
 class CNN(nn.Module):
     
-    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+    def __init__(self, input_size, embed_size, output_size, dropout=0.1):
         
         super().__init__()
 

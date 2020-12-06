@@ -14,14 +14,14 @@ from torch.utils.data import TensorDataset
 from preprocess import PreprocessTweets
 from transformers import BertTokenizer
 from model import (LSTM,
-                   CNN)
+                   CNN,
+                   GRU)
 
 
 GPU = True
+
 BATCH_SIZE = 1000
-# EPOCHS = 100
-EPOCHS = 20
-# BATCH_SIZE = 2000
+EPOCHS = 100
 MAX_SEQ_LEN = 50
 LR = 0.005
 
@@ -93,13 +93,16 @@ def get_model(input_size, embed_size, output_size, model_type):
     if model_type.lower() == 'cnn':
         return CNN(input_size, embed_size, output_size)
     
+    if model_type.lower() == 'gru':
+        return GRU(input_size, embed_size, output_size)
+    
     else:
         return None
     
     
 def run_model(model_type, data_type):
     
-    assert model_type in ['lstm', 'cnn'], 'Model type invalid'
+    assert model_type in ['lstm', 'cnn', 'gru'], 'Model type invalid'
     
     train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
@@ -219,3 +222,11 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('{}: Accuracy'.format(title), fontsize=32)
     plt.legend()
     plt.show()
+    
+    
+# %%
+    
+    
+for i in ['lstm', 'cnn', 'gru']:
+    for j in [2,3,5]:
+        run_model(i,j)
