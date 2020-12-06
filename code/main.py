@@ -92,6 +92,9 @@ def get_model(input_size, embed_size, output_size, model_type):
         
     if model_type.lower() == 'cnn':
         return CNN(input_size, embed_size, output_size)
+
+    if model_type.lower() == 'gru':
+        return GRU(input_size, embed_size, output_size)
     
     if model_type.lower() == 'gru':
         return GRU(input_size, embed_size, output_size)
@@ -124,6 +127,7 @@ def run_model(model_type, data_type):
     for epocs in range(EPOCHS):
         train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
         test_acc, test_loss = test_model(model, dataset_val, device)
+        print(train_acc, test_acc)
         
         train_accuracy_list.append(train_acc)
         train_loss_list.append(train_loss)
@@ -222,7 +226,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('{}: Accuracy'.format(title), fontsize=32)
     plt.legend()
     plt.show()
-    
+
     
 # %%
     
@@ -230,3 +234,4 @@ def plot(train_loss_accuracy, test_loss_accuracy,
 for i in ['lstm', 'cnn', 'gru']:
     for j in [2,3,5]:
         run_model(i,j)
+
