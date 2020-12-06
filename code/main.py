@@ -23,7 +23,7 @@ GPU = True
 BATCH_SIZE = 1000
 EPOCHS = 50
 MAX_SEQ_LEN = 50
-LR = 0.005
+# LR = 0.005
 
 
 def get_data(max_seq_len, val):
@@ -110,34 +110,38 @@ def run_model(model_type, data_type):
     train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
     
-    model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type)
-    if not model:
-        raise RuntimeError('No model selected!')
-        return
-
-    if GPU:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        model.to(device)
+    ###
+    for LR in [0.007,0.005,0.003]:# [0.005,0.001]: 
+    ###
     
-    train_accuracy_list, train_loss_list = [], []
-    test_accuracy_list, test_loss_list = [], []
+        model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type)
+        if not model:
+            raise RuntimeError('No model selected!')
+            return
     
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
-    
-    for epocs in range(EPOCHS):
-        train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
-        test_acc, test_loss = test_model(model, dataset_val, device)
-        # print(train_acc, test_acc)
+        if GPU:
+            device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+            model.to(device)
         
-        train_accuracy_list.append(train_acc)
-        train_loss_list.append(train_loss)
+        train_accuracy_list, train_loss_list = [], []
+        test_accuracy_list, test_loss_list = [], []
+            
+        optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
         
-        test_accuracy_list.append(test_acc)
-        test_loss_list.append(test_loss)
-        
-    plot(train_loss_list, test_loss_list,
-         train_accuracy_list, test_accuracy_list,
-         model_type.upper(), data_type)
+        for epocs in range(EPOCHS):
+            train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
+            test_acc, test_loss = test_model(model, dataset_val, device)
+            # print(train_acc, test_acc)
+            
+            train_accuracy_list.append(train_acc)
+            train_loss_list.append(train_loss)
+            
+            test_accuracy_list.append(test_acc)
+            test_loss_list.append(test_loss)
+            
+        plot(train_loss_list, test_loss_list,
+             train_accuracy_list, test_accuracy_list,
+             model_type.upper(), data_type, LR)
         
     
 def accuracy_pred(y_pred, y):
@@ -205,15 +209,19 @@ def test_model(model, dataset_val, device):
 
 
 def plot(train_loss_accuracy, test_loss_accuracy,
-         train_accuracy, test_accuracy, title, data_type):
+         train_accuracy, test_accuracy, title, data_type, lr):
     
     plt.figure(figsize=(24, 12))
     
     plt.plot(train_loss_accuracy, label='train loss')
     plt.plot(test_loss_accuracy, label='test loss')
+    
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Loss', fontsize=20)
-    plt.suptitle('Loss. Model: {}, Type: {}'.format(title, data_type), fontsize=32)
+    
+    plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
+    plt.title('Loss', fontsize=32)
+    
     plt.legend()
     plt.show()
     
@@ -221,8 +229,26 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     
     # plt.plot(train_accuracy, label='train accuracy')
     plt.plot(test_accuracy, label='test accuracy')
+    
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Accuracy', fontsize=20)
-    plt.suptitle('Accuracy. Model: {}, Type: {}'.format(title, data_type), fontsize=32)
+    
+    plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
+    plt.title('Accuracy', fontsize=32)
+    
     plt.legend()
     plt.show()
+
+
+# %%
+
+for j in ['lstm']:
+    for i in [2]:    
+        run_model(j, i)
+        
+'''
+LSTM
+    2: 0.007,0.005,0.003
+    3: 
+    5: 
+'''
