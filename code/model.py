@@ -5,12 +5,15 @@ Created on Sat Dec  5 09:55:19 2020
 @authors: Benedikt, Emil, Sara
 """
 
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class LSTM(nn.Module):
     
     def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+        
         super().__init__()
         
         self.input_size = input_size
@@ -18,7 +21,7 @@ class LSTM(nn.Module):
         self.output_size = output_size
         self.dropout = dropout
         
-        self.embedded = nn.Embedding(self.input_size, self.embed_size)
+        self.embedding = nn.Embedding(self.input_size, self.embed_size)
         
         self.LSTM = nn.LSTM(input_size=self.embed_size,
                             hidden_size=self.embed_size*2,
@@ -33,17 +36,95 @@ class LSTM(nn.Module):
         self.act = nn.Softmax()
         
   
-    def forward(self, x):
-
-        x = self.embedded(x)
-        x = self.relu(x)  
+    def forward(self, text):
         
-        lstm_out, (ht, ct) = self.LSTM(x)
+        embedded = self.relu(self.embedding(text))
         
-        x = self.fc(ht[-1])
+        lstm_out, (ht, ct) = self.LSTM(embedded)
         
-        return x
+        return self.fc(ht[-1])
 
 
 class CNN(nn.Module):
-    pass
+    
+    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+        
+        super().__init__()
+
+        self.input_size = input_size
+        self.embed_size = embed_size
+        self.output_size = output_size
+        self.dropout = dropout
+        
+        self.embedding = nn.Embedding(self.input_size, self.embed_size)
+
+        self.conv_0 = nn.Conv2d(in_channels = 1, 
+                                out_channels = 100, 
+                                kernel_size = (3, self.embed_size))
+        
+        self.conv_1 = nn.Conv2d(in_channels = 1, 
+                                out_channels = 100, 
+                                kernel_size = (4, self.embed_size))
+        
+        self.conv_2 = nn.Conv2d(in_channels = 1, 
+                                out_channels = 100, 
+                                kernel_size = (5, self.embed_size))
+        
+        self.fc = nn.Linear(3 * 100, self.output_size)
+        
+        self.dropout = nn.Dropout(dropout)
+
+
+    def forward(self, text):
+                      
+        embedded = self.embedding(text)        
+        embedded = embedded.unsqueeze(1)
+        
+        conved_0 = F.relu(self.conv_0(embedded).squeeze(3))
+        conved_1 = F.relu(self.conv_1(embedded).squeeze(3))
+        conved_2 = F.relu(self.conv_2(embedded).squeeze(3))
+        
+        pooled_0 = F.max_pool1d(conved_0, conved_0.shape[2]).squeeze(2)
+        pooled_1 = F.max_pool1d(conved_1, conved_1.shape[2]).squeeze(2)
+        pooled_2 = F.max_pool1d(conved_2, conved_2.shape[2]).squeeze(2)
+        
+        cat = self.dropout(torch.cat((pooled_0, pooled_1, pooled_2), dim = 1))
+            
+        return self.fc(cat)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

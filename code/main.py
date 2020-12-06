@@ -5,14 +5,16 @@ Created on Sat Dec  5 12:13:48 2020
 @author: Benedikt
 """
 import torch
+import torch.nn as nn
 import torch.nn.functional as functional
 import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 from preprocess import PreprocessTweets
-from model import LSTM
 from transformers import BertTokenizer
+from model import (LSTM,
+                   CNN)
 
 
 GPU = True
@@ -20,6 +22,8 @@ BATCH_SIZE = 1000
 # EPOCHS = 100
 EPOCHS = 20
 # BATCH_SIZE = 2000
+MAX_SEQ_LEN = 50
+LR = 0.005
 
 
 def get_data(max_seq_len, val):
@@ -36,24 +40,21 @@ def prepare_data(train_data, test_data):
     
     X_train = train_data['OriginalTweet']
     y_train = train_data['Sentiment']
-    
+
     X_test = test_data['OriginalTweet']
     y_test = test_data['Sentiment']
-    
     
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
                                               do_lower_case=True)
     
-    
     vocab_size = tokenizer.vocab_size
-    
     
     encoded_data_train = tokenizer.batch_encode_plus(
         X_train, 
         add_special_tokens=True, 
         return_attention_mask=True, 
         pad_to_max_length=True, 
-        max_length=50, 
+        max_length=MAX_SEQ_LEN, 
         return_tensors='pt'
     )
     
@@ -62,7 +63,7 @@ def prepare_data(train_data, test_data):
         add_special_tokens=True, 
         return_attention_mask=True, 
         pad_to_max_length=True, 
-        max_length=50, 
+        max_length=MAX_SEQ_LEN, 
         return_tensors='pt'
     )
     
@@ -84,22 +85,29 @@ def prepare_data(train_data, test_data):
     return dataset_train, dataset_val, vocab_size
 
 
-def get_lstm_model(input_size, embed_size, output_size):
+def get_model(input_size, embed_size, output_size, model_type):
     
-    return LSTM(input_size, embed_size, output_size)
-
-
-def run_lstm_model():
+    if model_type.lower() == 'lstm':
+        return LSTM(input_size, embed_size, output_size)
+        
+    if model_type.lower() == 'cnn':
+        return CNN(input_size, embed_size, output_size)
     
-    # Get data type 3
-    # data_type = 3
-    data_type = 2
-    max_seq_len = 50
+    else:
+        return None
     
-    train_data, test_data = get_data(max_seq_len, data_type)
+    
+def run_model(model_type, data_type):
+    
+    assert model_type in ['lstm', 'cnn'], 'Model type invalid'
+    
+    train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
     
-    model = get_lstm_model(vocab_size, max_seq_len, data_type)
+    model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type)
+    if not model:
+        raise RuntimeError('No model selected!')
+        return
 
     if GPU:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -108,7 +116,7 @@ def run_lstm_model():
     train_accuracy_list, train_loss_list = [], []
     test_accuracy_list, test_loss_list = [], []
     
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.005)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     
     for epocs in range(EPOCHS):
         train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
@@ -120,7 +128,9 @@ def run_lstm_model():
         test_accuracy_list.append(test_acc)
         test_loss_list.append(test_loss)
         
-    plot(train_loss_list, test_loss_list, train_accuracy_list, test_accuracy_list)
+    plot(train_loss_list, test_loss_list,
+         train_accuracy_list, test_accuracy_list,
+         model_type.upper())
         
     
 def accuracy_pred(y_pred, y):
@@ -148,12 +158,12 @@ def train_model(model, dataset_train, device, optimizer):
             X = X.to(device)
             y = y.to(device)
             
-        optimizer.zero_grad() # Clear the gradients, before next batch.
-        output = model(X)  # Forward pass
+        optimizer.zero_grad()
+        output = model(X)
         
-        loss = functional.cross_entropy(output, y)#.view(-1,1)) # Computing loss.
-        loss.backward()  # Back-propagation (computing gradients)
-        optimizer.step() # Update the weights (using gradients).
+        loss = functional.cross_entropy(output, y)
+        loss.backward()
+        optimizer.step()
         
         acc = accuracy_pred(output, y.unsqueeze(1))
             
@@ -176,7 +186,7 @@ def test_model(model, dataset_val, device):
             if GPU:
                 X = X.to(device)
                 y = y.to(device)
-            output = model(X)  # Forward pass
+            output = model(X)
             
             loss = functional.cross_entropy(output, y)  
             acc = accuracy_pred(output, y)
@@ -188,7 +198,7 @@ def test_model(model, dataset_val, device):
 
 
 def plot(train_loss_accuracy, test_loss_accuracy,
-         train_accuracy, test_accuracy):
+         train_accuracy, test_accuracy, title):
     
     plt.figure(figsize=(24, 12))
     
@@ -196,7 +206,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.plot(test_loss_accuracy, label='test loss')
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Loss', fontsize=20)
-    plt.suptitle('Loss', fontsize=32)
+    plt.suptitle('{}: Loss'.format(title), fontsize=32)
     plt.legend()
     plt.show()
     
@@ -206,6 +216,6 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.plot(test_accuracy, label='test accuracy')
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Accuracy', fontsize=20)
-    plt.suptitle('Accuracy', fontsize=32)
+    plt.suptitle('{}: Accuracy'.format(title), fontsize=32)
     plt.legend()
     plt.show()

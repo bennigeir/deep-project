@@ -9,10 +9,12 @@ import pandas as pd
 
 from sklearn.preprocessing import LabelEncoder
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 from utils import (remove_url,
                    remove_non_alpha,
                    pad_list,
-                   trim_list)
+                   trim_list,
+                   remove_stop_words)
 
 
 class PreprocessTweets():
@@ -33,6 +35,7 @@ class PreprocessTweets():
         self.train = self.test = None
         
         self.max_seq_len = max_seq_len
+        self.stop_words = set(stopwords.words('english'))
         
     
     def load_data(self):
@@ -82,10 +85,12 @@ class PreprocessTweets():
         pass
     
     
-    def stop_words(self):
+    def strip_stop_words(self):
         # Remove stopwords?
-        pass
-    
+                
+        self.train['OriginalTweet'] = self.train['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))
+        self.test['OriginalTweet'] = self.test['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))
+        
     
     def get_target(self, val):
         # Encode target values

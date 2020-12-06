@@ -17,3 +17,7 @@ def pad_list(tokens, max_seq_len):
     
 def trim_list(tokens, max_seq_len):
     return tokens[0:max_seq_len]
+
+
+def remove_stop_words(tweet, stop_words):
+    return [w for w in tweet if not w in stop_words]
