@@ -93,6 +93,33 @@ class CNN(nn.Module):
         return self.fc(cat)
 
 
+class GRU(nn.Module):
+
+    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+        super().__init__()
+
+        self.input_size = input_size
+        self.embed_size = embed_size
+        self.output_size = output_size
+        self.dropout = dropout
+
+        self.embedding = nn.Embedding(self.input_size, self.embed_size)
+
+        self.GRU = nn.GRU(input_size=self.embed_size,
+                           hidden_size=self.embed_size * 2,
+                           batch_first=True)
+
+        self.drop = nn.Dropout(self.dropout)
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(self.embed_size * 2, self.output_size)
+        self.act = nn.Softmax()
+
+    def forward(self, text):
+        embedded = self.relu(self.embedding(text))
+
+        lstm_out, hidden = self.GRU(embedded)
+
+        return self.fc(hidden[-1])
 
 
 
