@@ -10,24 +10,26 @@ import torch.nn as nn
 
 class LSTM(nn.Module):
     
-    def __init__(self, input_size, embed_size):
+    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
         super().__init__()
         
         self.input_size = input_size
         self.embed_size = embed_size
+        self.output_size = output_size
+        self.dropout = dropout
         
-        self.embedded = nn.Embedding(30522, 50)
+        self.embedded = nn.Embedding(self.input_size, self.embed_size)
         
-        self.LSTM = nn.LSTM(input_size=50,
-                            hidden_size=75,
+        self.LSTM = nn.LSTM(input_size=self.embed_size,
+                            hidden_size=self.embed_size*2,
                             # num_layers = 1,
                             batch_first=True,
-                            # dropout=0.15,
+                            # dropout=self.dropout,
                             )
         
-        self.drop = nn.Dropout(0.2)
+        self.drop = nn.Dropout(self.dropout)
         self.relu = nn.ReLU()
-        self.fc = nn.Linear(75, 3)
+        self.fc = nn.Linear(self.embed_size*2, self.output_size)
         self.act = nn.Softmax()
         
   

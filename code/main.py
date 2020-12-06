@@ -84,23 +84,22 @@ def prepare_data(train_data, test_data):
     return dataset_train, dataset_val, vocab_size
 
 
-def get_lstm_model(input_size, embed_size):
+def get_lstm_model(input_size, embed_size, output_size):
     
-    lstm = LSTM(input_size, embed_size)
-    
-    return lstm
+    return LSTM(input_size, embed_size, output_size)
 
 
 def run_lstm_model():
     
     # Get data type 3
-    data_type = 3
+    # data_type = 3
+    data_type = 2
     max_seq_len = 50
     
     train_data, test_data = get_data(max_seq_len, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
     
-    model = get_lstm_model(vocab_size, max_seq_len)
+    model = get_lstm_model(vocab_size, max_seq_len, data_type)
 
     if GPU:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
