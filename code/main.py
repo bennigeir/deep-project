@@ -21,7 +21,7 @@ from model import (LSTM,
 GPU = True
 
 BATCH_SIZE = 1000
-EPOCHS = 100
+EPOCHS = 50
 MAX_SEQ_LEN = 50
 LR = 0.005
 
@@ -127,7 +127,7 @@ def run_model(model_type, data_type):
     for epocs in range(EPOCHS):
         train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
         test_acc, test_loss = test_model(model, dataset_val, device)
-        print(train_acc, test_acc)
+        # print(train_acc, test_acc)
         
         train_accuracy_list.append(train_acc)
         train_loss_list.append(train_loss)
@@ -137,7 +137,7 @@ def run_model(model_type, data_type):
         
     plot(train_loss_list, test_loss_list,
          train_accuracy_list, test_accuracy_list,
-         model_type.upper())
+         model_type.upper(), data_type)
         
     
 def accuracy_pred(y_pred, y):
@@ -205,7 +205,7 @@ def test_model(model, dataset_val, device):
 
 
 def plot(train_loss_accuracy, test_loss_accuracy,
-         train_accuracy, test_accuracy, title):
+         train_accuracy, test_accuracy, title, data_type):
     
     plt.figure(figsize=(24, 12))
     
@@ -213,7 +213,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.plot(test_loss_accuracy, label='test loss')
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Loss', fontsize=20)
-    plt.suptitle('{}: Loss'.format(title), fontsize=32)
+    plt.suptitle('Loss. Model: {}, Type: {}'.format(title, data_type), fontsize=32)
     plt.legend()
     plt.show()
     
@@ -223,15 +223,6 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.plot(test_accuracy, label='test accuracy')
     plt.xlabel('Number of epochs', fontsize=20)
     plt.ylabel('Accuracy', fontsize=20)
-    plt.suptitle('{}: Accuracy'.format(title), fontsize=32)
+    plt.suptitle('Accuracy. Model: {}, Type: {}'.format(title, data_type), fontsize=32)
     plt.legend()
     plt.show()
-
-    
-# %%
-    
-    
-for i in ['lstm', 'cnn', 'gru']:
-    for j in [2,3,5]:
-        run_model(i,j)
-

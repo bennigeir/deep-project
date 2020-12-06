@@ -93,7 +93,8 @@ class CNN(nn.Module):
 
 class GRU(nn.Module):
 
-    def __init__(self, input_size, embed_size, output_size, dropout=0.2):
+    def __init__(self, input_size, embed_size, output_size, dropout=0.1):
+        
         super().__init__()
 
         self.input_size = input_size
@@ -113,9 +114,10 @@ class GRU(nn.Module):
         self.act = nn.Softmax()
 
     def forward(self, text):
+        
         embedded = self.relu(self.embedding(text))
 
-        lstm_out, hidden = self.GRU(embedded)
+        gru_out, hidden = self.GRU(embedded)
 
         return self.fc(hidden[-1])
 
