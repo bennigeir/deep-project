@@ -17,7 +17,7 @@ from utils import (remove_url,
 
 class PreprocessTweets():
     
-    def __init__(self):
+    def __init__(self, max_seq_len):
         
         self.train_path = '../data/Corona_NLP_train.csv'
         self.test_path = '../data/Corona_NLP_test.csv'
@@ -32,7 +32,7 @@ class PreprocessTweets():
 
         self.train = self.test = None
         
-        self.max_seq_len = 50
+        self.max_seq_len = max_seq_len
         
     
     def load_data(self):
@@ -87,15 +87,28 @@ class PreprocessTweets():
         pass
     
     
-    def get_target(self):
+    def get_target(self, val):
         # Encode target values
         encoder = LabelEncoder()
         
-        self.train.loc[self.train['Sentiment'] == 'Extremely Positive'] = 'Positive'
-        self.test.loc[self.test['Sentiment'] == 'Extremely Positive'] = 'Positive'
+        assert val in [5,3,2], 'val must have values 5, 3, or 2'
         
-        self.train.loc[self.train['Sentiment'] == 'Extremely Negative'] = 'Negative'
-        self.test.loc[self.test['Sentiment'] == 'Extremely Negative'] = 'Negative'
+        if val == 3:
+            self.train.loc[self.train['Sentiment'] == 'Extremely Positive'] = 'Positive'
+            self.test.loc[self.test['Sentiment'] == 'Extremely Positive'] = 'Positive'
+            
+            self.train.loc[self.train['Sentiment'] == 'Extremely Negative'] = 'Negative'
+            self.test.loc[self.test['Sentiment'] == 'Extremely Negative'] = 'Negative'
+            
+        if val == 2:
+            self.train.loc[self.train['Sentiment'] == 'Extremely Positive'] = 'Positive'
+            self.test.loc[self.test['Sentiment'] == 'Extremely Positive'] = 'Positive'
+            
+            self.train.loc[self.train['Sentiment'] == 'Extremely Negative'] = 'Negative'
+            self.test.loc[self.test['Sentiment'] == 'Extremely Negative'] = 'Negative'
+            
+            self.train = self.train[self.train['Sentiment'] != 'Neutral']
+            self.test = self.test[self.test['Sentiment'] != 'Neutral']
         
         self.train['Sentiment'] = encoder.fit_transform(self.train['Sentiment'])
         self.test['Sentiment'] = encoder.fit_transform(self.test['Sentiment'])
@@ -103,5 +116,5 @@ class PreprocessTweets():
     
     def return_numpy(self):
 
-        self.train = self.train[['OriginalTweet','Sentiment']].to_numpy()
-        self.test = self.test[['OriginalTweet','Sentiment']].to_numpy()
+        self.train = self.train.to_numpy()
+        self.test = self.test.to_numpy()

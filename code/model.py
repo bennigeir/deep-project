@@ -4,85 +4,44 @@ Created on Sat Dec  5 09:55:19 2020
 
 @authors: Benedikt, Emil, Sara
 """
-import torch
+
 import torch.nn as nn
-import torch.nn.functional as functional
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
-class RNN(nn.Module):
+class LSTM(nn.Module):
     
-    def __init__(self):
+    def __init__(self, input_size, embed_size):
         super().__init__()
         
-        self.embedding = nn.Embedding(30522, 50)
+        self.input_size = input_size
+        self.embed_size = embed_size
+        
+        self.embedded = nn.Embedding(30522, 50)
         
         self.LSTM = nn.LSTM(input_size=50,
-                            hidden_size=25,
+                            hidden_size=75,
+                            # num_layers = 1,
                             batch_first=True,
+                            # dropout=0.15,
                             )
         
         self.drop = nn.Dropout(0.2)
-        
         self.relu = nn.ReLU()
-
-        # self.fc = nn.Linear(25, 5)
-        self.fc = nn.Linear(25, 3)
-        
+        self.fc = nn.Linear(75, 3)
         self.act = nn.Softmax()
         
   
     def forward(self, x):
 
-        # print(x.shape)
-        x = self.embedding(x)
-        # print(x.shape)
-        
-        x = self.drop(x)
-        x = self.relu(x)
-        # x_pack = pack_padded_sequence(x, torch.Tensor(500), batch_first=True)
+        x = self.embedded(x)
+        x = self.relu(x)  
         
         lstm_out, (ht, ct) = self.LSTM(x)
-        # print(x)
-        x = self.fc(ht[-1])
-
         
-        return x#self.act(x)
-'''    
-from preprocess import PreprocessTweets
-from torch.utils.data import DataLoader
-from transformers import BertTokenizer, BertForSequenceClassification
-from sklearn.model_selection import train_test_split
+        x = self.fc(ht[-1])
+        
+        return x
 
 
-prepro = PreprocessTweets()
-prepro.load_data()
-prepro.clean_data()
-prepro.tokenize()
-prepro.trimming()
-prepro.padding()
-prepro.return_numpy()
-
-train_data = prepro.train
-test_data = prepro.test
-
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',do_lower_case=True)
-
-
-X_train, X_test, y_train, y_test = train_test_split(train_data, test_data)
-
-
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
+class CNN(nn.Module):
+    pass
