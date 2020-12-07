@@ -19,9 +19,10 @@ from model import (LSTM,
 
 
 GPU = True
+SAVE_MODEL = True
 
 BATCH_SIZE = 1000
-EPOCHS = 50
+EPOCHS = 5
 MAX_SEQ_LEN = 50
 # LR = 0.005
 
@@ -72,7 +73,7 @@ def prepare_data(train_data, test_data):
     
     input_ids_val = encoded_data_test['input_ids']
     labels_val = torch.tensor(y_test.values)
-    
+
     dataset_train = TensorDataset(input_ids_train.type(torch.LongTensor),
                                   labels_train.type(torch.LongTensor))
     dataset_val = TensorDataset(input_ids_val.type(torch.LongTensor),
@@ -154,7 +155,11 @@ def accuracy_pred(y_pred, y):
     
     return acc
 
-    
+
+def save_model(model):
+    torch.save(model.state_dict(), model.name + ".pt")
+
+
 def train_model(model, dataset_train, device, optimizer):
     
     train_epoch_loss = 0.0
@@ -180,6 +185,9 @@ def train_model(model, dataset_train, device, optimizer):
             
         train_epoch_loss += loss.item()
         train_epoch_acc += acc.item()
+
+    if SAVE_MODEL:
+        save_model(model)
         
     return (train_epoch_acc/len(dataset_train)), (train_epoch_loss/len(dataset_train))
     
@@ -242,9 +250,9 @@ def plot(train_loss_accuracy, test_loss_accuracy,
 
 # %%
 
-for j in ['lstm']:
-    for i in [2]:    
-        run_model(j, i)
+# for j in ['lstm']:
+#     for i in [2]:
+#         run_model(j, i)
         
 '''
 LSTM
@@ -252,3 +260,91 @@ LSTM
     3: 
     5: 
 '''
+
+from utils import (remove_url,
+                   remove_non_alpha,
+                   pad_list,
+                   trim_list,
+                   remove_stop_words)
+
+
+def clean(inp):
+    # Clean the data like in the data prep
+    inp = remove_url(inp)
+    inp = remove_non_alpha(inp)
+    return inp
+
+
+def get_type(index, data_type):
+    assert data_type in [5, 3, 2], 'val must have values 5, 3, or 2'
+
+    if data_type == 5:
+        if index == 0:
+            return 'Extremely Negative'
+        if index == 1:
+            return 'Negative'
+        if index == 2:
+            return 'Neutral'
+        if index == 3:
+            return 'Positive'
+        if index == 4:
+            return 'Extremely Positive'
+
+    if data_type == 3:
+        if index == 0:
+            return 'Negative'
+        if index == 1:
+            return 'Neutral'
+        if index == 2:
+            return 'Positive'
+
+    if data_type == 2:
+        if index == 0:
+            return 'Positive'
+        if index == 1:
+            return 'Negative'
+
+def tweet_analysis(inp):
+    inp = clean(inp)
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+                                              do_lower_case=True)
+
+    # Processing done as a list of one tweet
+    vocab_size = tokenizer.vocab_size
+    data = tokenizer.batch_encode_plus(
+        [inp],
+        add_special_tokens=True,
+        return_attention_mask=True,
+        pad_to_max_length=True,
+        return_tensors='pt',
+        truncation=True
+    )
+
+    # Use data loaders - this works but should be refactored... some typing issues
+    temp = torch.Tensor(data['input_ids'].float())
+    dataa = torch.utils.data.TensorDataset(temp.type(torch.LongTensor))
+    loader = DataLoader(dataa, batch_size=1, shuffle=False)
+
+    # Get model
+    model = get_model(vocab_size, MAX_SEQ_LEN, 5, 'gru')
+    model.load_state_dict(torch.load('GRU.pt'))
+    model.eval()
+
+    # Run the model
+    with torch.no_grad():
+        for val in loader:
+            preds = model(val[0])
+
+    print(preds)
+
+    # Select return index of the most likely category, highest value
+    values, indices = preds.max(1)
+    return indices.item()
+
+
+run_model('lstm', 5)
+
+# tweet = "Uh-oh, no SpaghettiOs. Panic buying at this San Diego grocery store leaves lots of empty shelves. #Covid_19 #coronavirus #C19 https://t.co/JuSw6pgLng"
+# tweet = "Trump is a nice guy"
+# ans = tweet_analysis(tweet)
+# print(tweet + " -- IS IN CATEGORY: " + get_type(ans, 5))

@@ -15,7 +15,9 @@ class LSTM(nn.Module):
     def __init__(self, input_size, embed_size, output_size, dropout=0.1):
         
         super().__init__()
-        
+
+        self.name = "LSTM"
+
         self.input_size = input_size
         self.embed_size = embed_size
         self.output_size = output_size
@@ -48,6 +50,8 @@ class CNN(nn.Module):
     def __init__(self, input_size, embed_size, output_size, dropout=0.1):
         
         super().__init__()
+
+        self.name = "CNN"
 
         self.input_size = input_size
         self.embed_size = embed_size
@@ -96,6 +100,8 @@ class GRU(nn.Module):
     def __init__(self, input_size, embed_size, output_size, dropout=0.1):
         
         super().__init__()
+
+        self.name = "GRU"
 
         self.input_size = input_size
         self.embed_size = embed_size
