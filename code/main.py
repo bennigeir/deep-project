@@ -96,10 +96,7 @@ def get_model(input_size, embed_size, output_size, model_type):
 
     if model_type.lower() == 'gru':
         return GRU(input_size, embed_size, output_size)
-    
-    if model_type.lower() == 'gru':
-        return GRU(input_size, embed_size, output_size)
-    
+
     else:
         return None
     
@@ -304,7 +301,10 @@ def get_type(index, data_type):
         if index == 1:
             return 'Negative'
 
-def tweet_analysis(inp):
+
+def tweet_analysis(inp, model_name):
+    assert model_name.lower() in ['gru', 'lstm', 'cnn']
+
     inp = clean(inp)
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
                                               do_lower_case=True)
@@ -326,8 +326,8 @@ def tweet_analysis(inp):
     loader = DataLoader(dataa, batch_size=1, shuffle=False)
 
     # Get model
-    model = get_model(vocab_size, MAX_SEQ_LEN, 5, 'gru')
-    model.load_state_dict(torch.load('GRU.pt'))
+    model = get_model(vocab_size, MAX_SEQ_LEN, 5, model_name.lower())
+    model.load_state_dict(torch.load(model_name + '.pt'))
     model.eval()
 
     # Run the model
@@ -342,9 +342,9 @@ def tweet_analysis(inp):
     return indices.item()
 
 
-run_model('lstm', 5)
+# run_model('lstm', 5)
 
 # tweet = "Uh-oh, no SpaghettiOs. Panic buying at this San Diego grocery store leaves lots of empty shelves. #Covid_19 #coronavirus #C19 https://t.co/JuSw6pgLng"
 # tweet = "Trump is a nice guy"
-# ans = tweet_analysis(tweet)
+# ans = tweet_analysis(tweet, 'LSTM')
 # print(tweet + " -- IS IN CATEGORY: " + get_type(ans, 5))
