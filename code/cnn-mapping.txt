@@ -1,0 +1,1 @@
+{"Extremely Negative": 1, "Extremely Positive": 2, "Negative": 3, "Neutral": 4, "Positive": 5}

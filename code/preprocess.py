@@ -36,6 +36,7 @@ class PreprocessTweets():
         
         self.max_seq_len = max_seq_len
         self.stop_words = set(stopwords.words('english'))
+        self.mapping = {}
         
     
     def load_data(self):
@@ -90,8 +91,8 @@ class PreprocessTweets():
                 
         self.train['OriginalTweet'] = self.train['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))
         self.test['OriginalTweet'] = self.test['OriginalTweet'].apply(lambda x: remove_stop_words(x, self.stop_words))
-        
-    
+
+    {'Extremely Negative': 1, 'Extremely Positive': 2, 'Negative': 3, 'Neutral': 4, 'Positive': 5}
     def get_target(self, val):
         # Encode target values
         encoder = LabelEncoder()
@@ -117,6 +118,8 @@ class PreprocessTweets():
         
         self.train['Sentiment'] = encoder.fit_transform(self.train['Sentiment'])
         self.test['Sentiment'] = encoder.fit_transform(self.test['Sentiment'])
+        
+        self.mapping = dict(zip(encoder.classes_, range(1, len(encoder.classes_)+1)))
     
     
     def return_numpy(self):

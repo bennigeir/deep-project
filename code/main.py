@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 import matplotlib.pyplot as plt
+import json
 
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
@@ -18,14 +19,13 @@ from model import (LSTM,
                    GRU)
 
 
-GPU = True
+GPU = False
 SAVE_MODEL = True
 
 BATCH_SIZE = 1000
-EPOCHS = 5
+EPOCHS = 2
 MAX_SEQ_LEN = 50
 # LR = 0.005
-
 
 def get_data(max_seq_len, val):
         
@@ -34,7 +34,7 @@ def get_data(max_seq_len, val):
     prepro.clean_data()
     prepro.get_target(val)
 
-    return prepro.train, prepro.test
+    return prepro.train, prepro.test, prepro.mapping
 
 
 def prepare_data(train_data, test_data):
@@ -99,47 +99,58 @@ def get_model(input_size, embed_size, output_size, model_type):
 
     else:
         return None
-    
+
+def save_model(model, mapping={}):
+    torch.save(model.state_dict(), model.name + ".pt")
+
+    # store the mappings in a file - varies on the data processing
+    f = open(model.name + "-mapping.txt", "x")
+    f.write(json.dumps(mappings, indent=4))
+    f.close()
     
 def run_model(model_type, data_type):
     
     assert model_type in ['lstm', 'cnn', 'gru'], 'Model type invalid'
     
-    train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
+    train_data, test_data, mapping = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
     
     ###
-    for LR in [0.007,0.005,0.003]:# [0.005,0.001]: 
+    for LR in [0.007,0.005,0.003]:# [0.005,0.001]:
     ###
     
         model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type)
         if not model:
             raise RuntimeError('No model selected!')
             return
-    
+
+        device = None
         if GPU:
             device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
             model.to(device)
-        
+
         train_accuracy_list, train_loss_list = [], []
         test_accuracy_list, test_loss_list = [], []
-            
+
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
-        
+
         for epocs in range(EPOCHS):
             train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
             test_acc, test_loss = test_model(model, dataset_val, device)
             # print(train_acc, test_acc)
-            
+
             train_accuracy_list.append(train_acc)
             train_loss_list.append(train_loss)
-            
+
             test_accuracy_list.append(test_acc)
             test_loss_list.append(test_loss)
-            
+
         plot(train_loss_list, test_loss_list,
              train_accuracy_list, test_accuracy_list,
              model_type.upper(), data_type, LR)
+
+    if SAVE_MODEL:
+        save_model(model, mapping)
         
     
 def accuracy_pred(y_pred, y):
@@ -151,10 +162,6 @@ def accuracy_pred(y_pred, y):
     acc = torch.round(acc * 100)
     
     return acc
-
-
-def save_model(model):
-    torch.save(model.state_dict(), model.name + ".pt")
 
 
 def train_model(model, dataset_train, device, optimizer):
@@ -182,9 +189,6 @@ def train_model(model, dataset_train, device, optimizer):
             
         train_epoch_loss += loss.item()
         train_epoch_acc += acc.item()
-
-    if SAVE_MODEL:
-        save_model(model)
         
     return (train_epoch_acc/len(dataset_train)), (train_epoch_loss/len(dataset_train))
     
@@ -272,38 +276,12 @@ def clean(inp):
     return inp
 
 
-def get_type(index, data_type):
-    assert data_type in [5, 3, 2], 'val must have values 5, 3, or 2'
-
-    if data_type == 5:
-        if index == 0:
-            return 'Extremely Negative'
-        if index == 1:
-            return 'Negative'
-        if index == 2:
-            return 'Neutral'
-        if index == 3:
-            return 'Positive'
-        if index == 4:
-            return 'Extremely Positive'
-
-    if data_type == 3:
-        if index == 0:
-            return 'Negative'
-        if index == 1:
-            return 'Neutral'
-        if index == 2:
-            return 'Positive'
-
-    if data_type == 2:
-        if index == 0:
-            return 'Positive'
-        if index == 1:
-            return 'Negative'
-
-
 def tweet_analysis(inp, model_name):
     assert model_name.lower() in ['gru', 'lstm', 'cnn']
+
+    # get the target mapping
+    f = open(model_name + "-mapping.txt")
+    mapping = json.loads(f.read())
 
     inp = clean(inp)
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
@@ -339,12 +317,11 @@ def tweet_analysis(inp, model_name):
 
     # Select return index of the most likely category, highest value
     values, indices = preds.max(1)
-    return indices.item()
 
-
-# run_model('lstm', 5)
+    # return the correct value from the mapping
+    return list(mapping.keys())[list(mapping.values()).index(indices.item() + 1)]
 
 # tweet = "Uh-oh, no SpaghettiOs. Panic buying at this San Diego grocery store leaves lots of empty shelves. #Covid_19 #coronavirus #C19 https://t.co/JuSw6pgLng"
-# tweet = "Trump is a nice guy"
-# ans = tweet_analysis(tweet, 'LSTM')
-# print(tweet + " -- IS IN CATEGORY: " + get_type(ans, 5))
+# tweet = "Covid made me sick"
+# ans = tweet_analysis(tweet, 'cnn')
+# print(tweet + " -- IS IN CATEGORY: " + ans)
