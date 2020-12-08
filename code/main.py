@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 import matplotlib.pyplot as plt
+import json
 
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
@@ -19,11 +20,13 @@ from model import (LSTM,
 
 
 GPU = True
+SAVE_MODEL = True
 BATCH_SIZE = 1000
 EPOCHS = 50
 MAX_SEQ_LEN = 75
 LR = 0.005
 DROPOUT = 0
+
 
 
 def get_data(max_seq_len, val):
@@ -35,7 +38,7 @@ def get_data(max_seq_len, val):
     # prepro.strip_stop_words()
     prepro.get_target(val)
 
-    return prepro.train, prepro.test
+    return prepro.train, prepro.test, prepro.mapping
 
 
 def prepare_data(train_data, test_data):
@@ -74,7 +77,7 @@ def prepare_data(train_data, test_data):
     
     input_ids_val = encoded_data_test['input_ids']
     labels_val = torch.tensor(y_test.values)
-    
+
     dataset_train = TensorDataset(input_ids_train.type(torch.LongTensor),
                                   labels_train.type(torch.LongTensor))
     dataset_val = TensorDataset(input_ids_val.type(torch.LongTensor),
@@ -100,13 +103,22 @@ def get_model(input_size, embed_size, output_size, model_type, dropout):
     
     else:
         return None
-    
-    
+
+
+def save_model(model, mapping={}):
+    torch.save(model.state_dict(), model.name + ".pt")
+
+    # store the mappings in a file - varies on the data processing
+    f = open(model.name + "-mapping.txt", "x")
+    f.write(json.dumps(mapping, indent=4))
+    f.close()
+
+
 def run_model(model_type, data_type):
     
     assert model_type in ['lstm', 'cnn', 'gru'], 'Model type invalid'
     
-    train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
+    train_data, test_data, mapping = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
 
     model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type, DROPOUT)
@@ -117,7 +129,7 @@ def run_model(model_type, data_type):
     if GPU:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         model.to(device)
-    
+
     train_accuracy_list, train_loss_list = [], []
     test_accuracy_list, test_loss_list = [], []
         
@@ -137,6 +149,9 @@ def run_model(model_type, data_type):
     plot(train_loss_list, test_loss_list,
          train_accuracy_list, test_accuracy_list,
          model_type.upper(), data_type, LR)
+
+    if SAVE_MODEL:
+        save_model(model, mapping)
         
     
 def accuracy_pred(y_pred, y):
@@ -149,7 +164,7 @@ def accuracy_pred(y_pred, y):
     
     return acc
 
-    
+
 def train_model(model, dataset_train, device, optimizer):
     
     train_epoch_loss = 0.0
@@ -243,3 +258,81 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     
     plt.legend()
     plt.show()
+
+
+# %%
+
+# for j in ['lstm']:
+#     for i in [2]:
+#         run_model(j, i)
+        
+'''
+LSTM
+    2: 0.007,0.005,0.003
+    3: 
+    5: 
+'''
+
+from utils import (remove_url,
+                   remove_non_alpha,
+                   pad_list,
+                   trim_list,
+                   remove_stop_words)
+
+
+def clean(inp):
+    # Clean the data like in the data prep
+    inp = remove_url(inp)
+    inp = remove_non_alpha(inp)
+    return inp
+
+
+def tweet_analysis(inp, model_name):
+    assert model_name.lower() in ['gru', 'lstm', 'cnn']
+
+    # get the target mapping
+    f = open(model_name + "-mapping.txt")
+    mapping = json.loads(f.read())
+
+    inp = clean(inp)
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+                                              do_lower_case=True)
+
+    # Processing done as a list of one tweet
+    vocab_size = tokenizer.vocab_size
+    data = tokenizer.batch_encode_plus(
+        [inp],
+        add_special_tokens=True,
+        return_attention_mask=True,
+        pad_to_max_length=True,
+        return_tensors='pt',
+        truncation=True
+    )
+
+    # Use data loaders - this works but should be refactored... some typing issues
+    temp = torch.Tensor(data['input_ids'].float())
+    dataa = torch.utils.data.TensorDataset(temp.type(torch.LongTensor))
+    loader = DataLoader(dataa, batch_size=1, shuffle=False)
+
+    # Get model
+    model = get_model(vocab_size, MAX_SEQ_LEN, 5, model_name.lower())
+    model.load_state_dict(torch.load(model_name + '.pt'))
+    model.eval()
+
+    # Run the model
+    with torch.no_grad():
+        for val in loader:
+            preds = model(val[0])
+
+    print(preds)
+
+    # Select return index of the most likely category, highest value
+    values, indices = preds.max(1)
+
+    # return the correct value from the mapping
+    return list(mapping.keys())[list(mapping.values()).index(indices.item() + 1)]
+
+# tweet = "Uh-oh, no SpaghettiOs. Panic buying at this San Diego grocery store leaves lots of empty shelves. #Covid_19 #coronavirus #C19 https://t.co/JuSw6pgLng"
+# tweet = "Covid made me sick"
+# ans = tweet_analysis(tweet, 'cnn')
+# print(tweet + " -- IS IN CATEGORY: " + ans)
