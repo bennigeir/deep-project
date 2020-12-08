@@ -120,38 +120,3 @@ class GRU(nn.Module):
         gru_out, hidden = self.GRU(embedded)
 
         return self.fc(hidden[-1])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

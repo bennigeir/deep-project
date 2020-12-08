@@ -20,4 +20,5 @@ def trim_list(tokens, max_seq_len):
 
 
 def remove_stop_words(tweet, stop_words):
-    return [w for w in tweet if not w in stop_words]
+    temp = [w for w in tweet if not w in stop_words]
+    return ' '.join(temp)

@@ -19,11 +19,11 @@ from model import (LSTM,
 
 
 GPU = True
-
 BATCH_SIZE = 1000
 EPOCHS = 50
-MAX_SEQ_LEN = 50
-# LR = 0.005
+MAX_SEQ_LEN = 75
+LR = 0.005
+DROPOUT = 0
 
 
 def get_data(max_seq_len, val):
@@ -31,6 +31,8 @@ def get_data(max_seq_len, val):
     prepro = PreprocessTweets(max_seq_len)
     prepro.load_data()
     prepro.clean_data()
+    # prepro.tokenize()
+    # prepro.strip_stop_words()
     prepro.get_target(val)
 
     return prepro.train, prepro.test
@@ -57,7 +59,7 @@ def prepare_data(train_data, test_data):
         max_length=MAX_SEQ_LEN, 
         return_tensors='pt'
     )
-    
+
     encoded_data_test = tokenizer.batch_encode_plus(
         X_test, 
         add_special_tokens=True, 
@@ -85,19 +87,16 @@ def prepare_data(train_data, test_data):
     return dataset_train, dataset_val, vocab_size
 
 
-def get_model(input_size, embed_size, output_size, model_type):
+def get_model(input_size, embed_size, output_size, model_type, dropout):
     
     if model_type.lower() == 'lstm':
-        return LSTM(input_size, embed_size, output_size)
+        return LSTM(input_size, embed_size, output_size, dropout)
         
     if model_type.lower() == 'cnn':
-        return CNN(input_size, embed_size, output_size)
+        return CNN(input_size, embed_size, output_size, dropout)
 
     if model_type.lower() == 'gru':
-        return GRU(input_size, embed_size, output_size)
-    
-    if model_type.lower() == 'gru':
-        return GRU(input_size, embed_size, output_size)
+        return GRU(input_size, embed_size, output_size, dropout)
     
     else:
         return None
@@ -109,39 +108,35 @@ def run_model(model_type, data_type):
     
     train_data, test_data = get_data(MAX_SEQ_LEN, data_type)
     dataset_train, dataset_val, vocab_size = prepare_data(train_data, test_data)
+
+    model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type, DROPOUT)
+       
+    if not model:
+        raise RuntimeError('No model selected!')
+
+    if GPU:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        model.to(device)
     
-    ###
-    for LR in [0.007,0.005,0.003]:# [0.005,0.001]: 
-    ###
-    
-        model = get_model(vocab_size, MAX_SEQ_LEN, data_type, model_type)
-        if not model:
-            raise RuntimeError('No model selected!')
-            return
-    
-        if GPU:
-            device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-            model.to(device)
+    train_accuracy_list, train_loss_list = [], []
+    test_accuracy_list, test_loss_list = [], []
         
-        train_accuracy_list, train_loss_list = [], []
-        test_accuracy_list, test_loss_list = [], []
-            
-        optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
+    
+    for epocs in range(EPOCHS):
         
-        for epocs in range(EPOCHS):
-            train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
-            test_acc, test_loss = test_model(model, dataset_val, device)
-            # print(train_acc, test_acc)
-            
-            train_accuracy_list.append(train_acc)
-            train_loss_list.append(train_loss)
-            
-            test_accuracy_list.append(test_acc)
-            test_loss_list.append(test_loss)
-            
-        plot(train_loss_list, test_loss_list,
-             train_accuracy_list, test_accuracy_list,
-             model_type.upper(), data_type, LR)
+        train_acc, train_loss = train_model(model, dataset_train, device, optimizer)
+        test_acc, test_loss = test_model(model, dataset_val, device)
+        
+        train_accuracy_list.append(train_acc)
+        train_loss_list.append(train_loss)
+        
+        test_accuracy_list.append(test_acc)
+        test_loss_list.append(test_loss)
+        
+    plot(train_loss_list, test_loss_list,
+         train_accuracy_list, test_accuracy_list,
+         model_type.upper(), data_type, LR)
         
     
 def accuracy_pred(y_pred, y):
@@ -174,6 +169,9 @@ def train_model(model, dataset_train, device, optimizer):
         
         loss = functional.cross_entropy(output, y)
         loss.backward()
+        
+        nn.utils.clip_grad_norm_(model.parameters(), 1)
+        
         optimizer.step()
         
         acc = accuracy_pred(output, y.unsqueeze(1))
@@ -211,6 +209,7 @@ def test_model(model, dataset_val, device):
 def plot(train_loss_accuracy, test_loss_accuracy,
          train_accuracy, test_accuracy, title, data_type, lr):
     
+    
     plt.figure(figsize=(24, 12))
     
     plt.plot(train_loss_accuracy, label='train loss')
@@ -222,8 +221,12 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
     plt.title('Loss', fontsize=32)
     
+    plt.savefig('{}_{}_loss.png'.format(title, data_type))
+    
     plt.legend()
     plt.show()
+    
+    
     
     plt.figure(figsize=(24, 12))
     
@@ -236,19 +239,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
     plt.title('Accuracy', fontsize=32)
     
+    plt.savefig('{}_{}_acc.png'.format(title, data_type))
+    
     plt.legend()
     plt.show()
-
-
-# %%
-
-for j in ['lstm']:
-    for i in [2]:    
-        run_model(j, i)
-        
-'''
-LSTM
-    2: 0.007,0.005,0.003
-    3: 
-    5: 
-'''

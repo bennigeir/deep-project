@@ -54,6 +54,7 @@ class PreprocessTweets():
         self.train['OriginalTweet'] = self.train['OriginalTweet'].apply(lambda x: remove_url(x))
         self.test['OriginalTweet'] = self.test['OriginalTweet'].apply(lambda x: remove_url(x))
         
+        # Higher accuracy by including non alpha
         self.train['OriginalTweet'] = self.train['OriginalTweet'].apply(lambda x: remove_non_alpha(x))
         self.test['OriginalTweet'] = self.test['OriginalTweet'].apply(lambda x: remove_non_alpha(x))
         
