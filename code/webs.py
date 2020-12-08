@@ -5,17 +5,17 @@ from main import tweet_analysis
 app = Flask(__name__)
 
 
-@app.route('/api/v1/analyse_tweet', methods=['GET'])
-def get_analysis():
-    tweet = str(request.args.get('tweet', ''))
-    model_type = str(request.args.get('model_type', ''))
-
-    # default CNN, TODO refactor...
-    if len(model_type) == 0:
-        model_type = 'cnn'
-
-    ans = tweet_analysis(tweet, model_type)
-    return jsonify({'category': ans})
+# @app.route('/api/v1/analyse_tweet', methods=['GET'])
+# def get_analysis():
+#     tweet = str(request.args.get('tweet', ''))
+#     model_type = str(request.args.get('model_type', ''))
+#
+#     # default CNN, TODO refactor...
+#     if len(model_type) == 0:
+#         model_type = 'cnn'
+#
+#     ans = tweet_analysis(tweet, model_type)
+#     return jsonify({'category': ans})
 
 
 @app.route('/')
