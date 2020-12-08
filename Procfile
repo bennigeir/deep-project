@@ -1,1 +1,1 @@
-web: gunicorn code/webs:app
+web: gunicorn yolo:app
