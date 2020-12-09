@@ -165,11 +165,10 @@ def accuracy_pred(y_pred, y, test=False):
     acc = correct_results_sum/y.shape[0]
     acc = torch.round(acc * 100)
     
-    # print([element.item() for element in y.flatten()])
     y_pred_list = y_pred.tolist()
-
     
-    confusion = confusion_matrix([element.item() for element in y.flatten()], (np.argmax(y_pred_list, axis=1)).tolist())
+    confusion = confusion_matrix([element.item() for element in y.flatten()], 
+                                 (np.argmax(y_pred_list, axis=1)).tolist())
     if test:
         print(confusion)
     
