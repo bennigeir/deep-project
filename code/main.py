@@ -20,9 +20,10 @@ from model import (LSTM,
 
 
 GPU = True
-SAVE_MODEL = True
+SAVE_MODEL = False
 BATCH_SIZE = 1000
-EPOCHS = 50
+# EPOCHS = 50
+EPOCHS = 20
 MAX_SEQ_LEN = 75
 LR = 0.005
 DROPOUT = 0
@@ -36,7 +37,7 @@ def get_data(max_seq_len, val):
     prepro.clean_data()
     # prepro.tokenize()
     # prepro.strip_stop_words()
-    prepro.get_target(val)
+    # prepro.get_target(val)
 
     return prepro.train, prepro.test, prepro.mapping
 
@@ -85,12 +86,12 @@ def prepare_data(train_data, test_data):
     
     dataset_train = DataLoader(dataset_train, batch_size=BATCH_SIZE,
                                shuffle=True)
-    dataset_val = DataLoader(dataset_val, batch_size=1)
+    dataset_val = DataLoader(dataset_val, batch_size=5000)
     
     return dataset_train, dataset_val, vocab_size
 
 
-def get_model(input_size, embed_size, output_size, model_type, dropout):
+def get_model(input_size, embed_size, output_size, model_type, dropout=DROPOUT):
     
     if model_type.lower() == 'lstm':
         return LSTM(input_size, embed_size, output_size, dropout)
@@ -153,14 +154,24 @@ def run_model(model_type, data_type):
     if SAVE_MODEL:
         save_model(model, mapping)
         
-    
-def accuracy_pred(y_pred, y):
+
+from sklearn.metrics import confusion_matrix
+import numpy as np
+def accuracy_pred(y_pred, y, test=False):
     
     y_pred_tag = torch.argmax(y_pred)
     
     correct_results_sum = (y_pred_tag == y).sum().float()
     acc = correct_results_sum/y.shape[0]
     acc = torch.round(acc * 100)
+    
+    # print([element.item() for element in y.flatten()])
+    y_pred_list = y_pred.tolist()
+
+    
+    confusion = confusion_matrix([element.item() for element in y.flatten()], (np.argmax(y_pred_list, axis=1)).tolist())
+    if test:
+        print(confusion)
     
     return acc
 
@@ -213,7 +224,7 @@ def test_model(model, dataset_val, device):
             output = model(X)
             
             loss = functional.cross_entropy(output, y)  
-            acc = accuracy_pred(output, y)
+            acc = accuracy_pred(output, y, test=True)
             
             test_epoch_loss += loss.item()
             test_epoch_acc += acc.item()
@@ -236,7 +247,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
     plt.title('Loss', fontsize=32)
     
-    plt.savefig('{}_{}_loss.png'.format(title, data_type))
+    # plt.savefig('{}_{}_loss.png'.format(title, data_type))
     
     plt.legend()
     plt.show()
@@ -254,7 +265,7 @@ def plot(train_loss_accuracy, test_loss_accuracy,
     plt.suptitle('Model: {}, Type: {}, Learning Rate: {}'.format(title, data_type, lr), fontsize=28)
     plt.title('Accuracy', fontsize=32)
     
-    plt.savefig('{}_{}_acc.png'.format(title, data_type))
+    # plt.savefig('{}_{}_acc.png'.format(title, data_type))
     
     plt.legend()
     plt.show()
@@ -262,16 +273,13 @@ def plot(train_loss_accuracy, test_loss_accuracy,
 
 # %%
 
-# for j in ['lstm']:
-#     for i in [2]:
-#         run_model(j, i)
         
-'''
-LSTM
-    2: 0.007,0.005,0.003
-    3: 
-    5: 
-'''
+for i in [[2,'cnn'],[3,'gru'],[5,'gru']]:
+    run_model(i[1], i[0])
+
+
+
+# %%
 
 from utils import (remove_url,
                    remove_non_alpha,
@@ -291,6 +299,7 @@ def tweet_analysis(inp, model_name):
     assert model_name.lower() in ['gru', 'lstm', 'cnn']
 
     # get the target mapping
+    print(model_name)
     f = open(model_name + "-mapping.txt")
     mapping = json.loads(f.read())
 
@@ -315,7 +324,9 @@ def tweet_analysis(inp, model_name):
     loader = DataLoader(dataa, batch_size=1, shuffle=False)
 
     # Get model
-    model = get_model(vocab_size, MAX_SEQ_LEN, 5, model_name.lower())
+    model = get_model(vocab_size, MAX_SEQ_LEN, 3, model_name.lower())
+    print(model)
+    print(model_name + '.pt')
     model.load_state_dict(torch.load(model_name + '.pt'))
     model.eval()
 
